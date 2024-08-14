@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 /**
  * @swagger
- * /users/register:
+ * /api/users/register:
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user with the given name, email, and password.
@@ -97,7 +97,7 @@ router.post(
 
 /**
  * @swagger
- * /users/login:
+ * /api/users/login:
  *   post:
  *     summary: Login a user
  *     description: Authenticates a user and returns a success message if login is successful.
@@ -164,7 +164,7 @@ router.post(
 
 /**
  * @swagger
- * /users:
+ * /api/users:
  *   get:
  *     summary: Get all users
  *     description: Retrieves a list of all users.

@@ -8,9 +8,63 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String       @unique
   password  String
-  createdAt DateTime @default(now())
+  classes   ClassMember[]
+  posts     Post[]
+  comments  Comment[]
+  createdClasses ClassRoom[] @relation("CreatedClasses")
+}
+
+model ClassRoom {
+  id          Int          @id @default(autoincrement())
+  name        String
+  description String?
+  createdBy   Int
+  creator     User         @relation(fields: [createdBy], references: [id], name: "CreatedClasses")
+  members     ClassMember[]
+  posts       Post[]
+}
+
+model ClassMember {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  classId    Int
+  role       Role     @default(NORMAL)
+  user       User     @relation(fields: [userId], references: [id])
+  classRoom  ClassRoom @relation(fields: [classId], references: [id])
+}
+
+model Post {
+  id          Int          @id @default(autoincrement())
+  title       String
+  content     String
+  classRoomId Int
+  authorId    Int
+  postType    PostType
+  author      User         @relation(fields: [authorId], references: [id])
+  classRoom   ClassRoom    @relation(fields: [classRoomId], references: [id])
+  comments    Comment[]
+}
+
+model Comment {
+  id      Int    @id @default(autoincrement())
+  content String
+  postId  Int
+  authorId Int
+  author  User   @relation(fields: [authorId], references: [id])
+  post    Post   @relation(fields: [postId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MODERATOR
+  NORMAL
+}
+
+enum PostType {
+  ASSIGNMENT
+  MESSAGE
 }
