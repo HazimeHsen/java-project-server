@@ -57,7 +57,6 @@ router.get(
     }
 
     const { userId } = req.params;
-console.log(userId);
 
     try {
       const classes = await prisma.classRoom.findMany({
@@ -68,6 +67,9 @@ console.log(userId);
             },
           },
         },
+        include: {
+          members: true,
+        },
       });
 
       res.json(classes);
@@ -77,7 +79,6 @@ console.log(userId);
     }
   }
 );
-
 
 /**
  * @swagger
@@ -227,11 +228,6 @@ router.post(
       .isInt({ gt: 0 })
       .withMessage("User ID must be a valid positive integer")
       .toInt(),
-    body("role")
-      .isString()
-      .withMessage("Role must be a string")
-      .isIn(Object.values(Role))
-      .withMessage("Invalid role"),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -240,14 +236,14 @@ router.post(
     }
 
     const { classId } = req.params;
-    const { userId, role } = req.body;
+    const { userId } = req.body;
 
     try {
       const member = await prisma.classMember.create({
         data: {
           classId: Number(classId),
           userId: Number(userId),
-          role,
+          role: Role.NORMAL,
         },
       });
 
@@ -322,6 +318,98 @@ router.get(
     } catch (error) {
       console.error("Failed to fetch members:", error);
       res.status(500).json({ error: "Failed to fetch members" });
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/classrooms/{classId}/available-members/{currentUserId}:
+ *   get:
+ *     summary: Get available users for a class
+ *     description: Retrieves a list of users who are not in the specified class and are not the current user.
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         description: ID of the classroom
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *       - in: path
+ *         name: currentUserId
+ *         required: true
+ *         description: ID of the current user
+ *         schema:
+ *           type: integer
+ *           example: 2
+ *     responses:
+ *       200:
+ *         description: List of available users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/:classId/available-members/:currentUserId",
+  [
+    param("classId")
+      .isInt({ gt: 0 })
+      .withMessage("Class ID must be a valid positive integer")
+      .toInt(),
+    param("currentUserId")
+      .isInt({ gt: 0 })
+      .withMessage("Current User ID must be a valid positive integer")
+      .toInt(),
+  ],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { classId, currentUserId } = req.params;
+
+    try {
+      const allUsers = await prisma.user.findMany({
+        where: {
+          id: {
+            not: Number(currentUserId),
+          },
+        },
+      });
+
+      const classMembers = await prisma.classMember.findMany({
+        where: {
+          classId: Number(classId),
+        },
+        select: {
+          userId: true,
+        },
+      });
+
+      const memberIds = classMembers.map((member) => member.userId);
+
+      const availableUsers = allUsers.filter(
+        (user) => !memberIds.includes(user.id)
+      );
+
+      res.json(availableUsers);
+    } catch (error) {
+      console.error("Failed to fetch available users:", error);
+      res.status(500).json({ error: "Failed to fetch available users" });
     }
   }
 );
