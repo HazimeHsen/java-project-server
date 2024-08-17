@@ -63,7 +63,8 @@ router.post(
       .withMessage("Description must be a string"),
     body("creatorId")
       .isInt({ gt: 0 })
-      .withMessage("Creator ID must be a valid positive integer"),
+      .withMessage("Creator ID must be a valid positive integer")
+      .toInt(),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -78,9 +79,9 @@ router.post(
         data: {
           name,
           description,
-          createdBy: creatorId,
+          createdBy: Number(creatorId),
           members: {
-            create: { userId: creatorId, role: Role.ADMIN },
+            create: { userId: Number(creatorId), role: Role.ADMIN },
           },
         },
       });
@@ -146,10 +147,12 @@ router.post(
   [
     param("classId")
       .isInt({ gt: 0 })
-      .withMessage("Class ID must be a valid positive integer"),
+      .withMessage("Class ID must be a valid positive integer")
+      .toInt(),
     body("userId")
       .isInt({ gt: 0 })
-      .withMessage("User ID must be a valid positive integer"),
+      .withMessage("User ID must be a valid positive integer")
+      .toInt(),
     body("role")
       .isString()
       .withMessage("Role must be a string")
@@ -168,8 +171,8 @@ router.post(
     try {
       const member = await prisma.classMember.create({
         data: {
-          classId: parseInt(classId),
-          userId,
+          classId: Number(classId),
+          userId: Number(userId),
           role,
         },
       });
@@ -224,7 +227,8 @@ router.get(
   [
     param("classId")
       .isInt({ gt: 0 })
-      .withMessage("Class ID must be a valid positive integer"),
+      .withMessage("Class ID must be a valid positive integer")
+      .toInt(),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -236,7 +240,7 @@ router.get(
 
     try {
       const members = await prisma.classMember.findMany({
-        where: { classId: parseInt(classId) },
+        where: { classId: Number(classId) },
         include: { user: true },
       });
 
