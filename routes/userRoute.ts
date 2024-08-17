@@ -155,7 +155,7 @@ router.post(
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      res.json({ message: "Login successful" });
+      res.json({ message: "Login successful", user });
     } catch (error) {
       res.status(500).json({ error: "Failed to login" });
     }
