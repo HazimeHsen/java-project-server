@@ -7,6 +7,80 @@ const prisma = new PrismaClient();
 
 /**
  * @swagger
+ * /api/users/{userId}/classes:
+ *   get:
+ *     summary: Get classes of a user
+ *     description: Retrieves a list of classrooms associated with a specified user.
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID of the user
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *     responses:
+ *       200:
+ *         description: List of user classes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   createdBy:
+ *                     type: integer
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/:userId/classes",
+  [
+    param("userId")
+      .isInt({ gt: 0 })
+      .withMessage("User ID must be a valid positive integer")
+      .toInt(),
+  ],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { userId } = req.params;
+console.log(userId);
+
+    try {
+      const classes = await prisma.classRoom.findMany({
+        where: {
+          members: {
+            some: {
+              userId: Number(userId),
+            },
+          },
+        },
+      });
+
+      res.json(classes);
+    } catch (error) {
+      console.error("Failed to fetch classes:", error);
+      res.status(500).json({ error: "Failed to fetch classes" });
+    }
+  }
+);
+
+
+/**
+ * @swagger
  * /api/classrooms:
  *   post:
  *     summary: Create a new class
