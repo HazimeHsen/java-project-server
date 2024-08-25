@@ -7,27 +7,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String
-  classes     ClassMember[]
-  comments    Comment[]
-  createdClasses ClassRoom[] @relation("CreatedClasses")
-  fileUploads FileUpload[]
-}
-
-model ClassRoom {
-  id          Int          @id @default(autoincrement())
-  name        String
+model Assignment {
+  id          Int       @id @default(autoincrement())
+  title       String
   description String?
+  classId     Int
+  class       ClassRoom @relation(fields: [classId], references: [id])
   createdBy   Int
-  creator     User         @relation(fields: [createdBy], references: [id], name: "CreatedClasses")
-  members     ClassMember[]
-  fileUploads FileUpload[]
+  creator     User      @relation(fields: [createdBy], references: [id])
+  assignedTo  AssignmentAssignmentTo[]
+  submissions Submission[]
+  fileId       Int?
+  file         FileUpload? @relation(fields: [fileId], references: [id]) // Link to FileUpload
 }
 
+model Submission {
+  id            Int        @id @default(autoincrement())
+  assignmentId  Int
+  userId        Int
+  fileName      String
+  filePath      String
+  createdAt     DateTime   @default(now())
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
+}
+
+model AssignmentAssignmentTo {
+  id            Int        @id @default(autoincrement())
+  assignmentId  Int
+  userId        Int
+  assignedAt    DateTime   @default(now())
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+  user          User       @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id           Int                       @id @default(autoincrement())
+  name         String
+  email        String                    @unique
+  password     String
+  classes      ClassMember[]
+  comments     Comment[]
+  createdClasses ClassRoom[]             @relation("CreatedClasses")
+  fileUploads  FileUpload[]
+  assignments  AssignmentAssignmentTo[]
+  submissions  Submission[]              // Track submissions for user
+
+  Assignment Assignment[]
+}
+model ClassRoom {
+  id           Int          @id @default(autoincrement())
+  name         String
+  description  String?
+  createdBy    Int
+  creator      User         @relation(fields: [createdBy], references: [id], name: "CreatedClasses")
+  members      ClassMember[]
+  fileUploads  FileUpload[]
+  assignments  Assignment[]
+}
 model ClassMember {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -48,6 +85,8 @@ model FileUpload {
   user      User     @relation(fields: [userId], references: [id])
   class     ClassRoom @relation(fields: [classId], references: [id])
   comments  Comment[]
+
+  Assignment Assignment[]
 }
 
 model Comment {

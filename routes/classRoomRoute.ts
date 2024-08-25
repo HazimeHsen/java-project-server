@@ -789,4 +789,135 @@ router.put(
   }
 );
 
+
+router.post("/:classId/assignments", async (req: Request, res: Response) => {
+  const { classId } = req.params;
+  const { title, description, createdBy, fileId } = req.body;
+  console.log(title, description, createdBy, fileId);
+
+  try {
+    const assignment = await prisma.assignment.create({
+      data: {
+        title,
+        description,
+        classId: Number(classId),
+        createdBy: Number(createdBy),
+        fileId: Number(fileId),
+      },
+    });
+
+    const classMembers = await prisma.classMember.findMany({
+      where: {
+        classId: Number(classId),
+        userId: {
+          not: Number(createdBy),
+        },
+      },
+    });
+
+    const assignmentAssignments = classMembers.map((member) => ({
+      assignmentId: assignment.id,
+      userId: member.userId,
+    }));
+
+    await prisma.assignmentAssignmentTo.createMany({
+      data: assignmentAssignments,
+    });
+
+    res.status(201).json({
+      message: "Assignment created and assigned successfully",
+      assignment,
+    });
+  } catch (error) {
+    console.error("Error creating assignment:", error);
+    res.status(500).json({ error: "Failed to create assignment" });
+  }
+});
+
+router.get(
+  "/:classId/:userId/assignments",
+  async (req: Request, res: Response) => {
+    const { classId, userId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    try {
+      const assignments = await prisma.assignment.findMany({
+        where: { classId: Number(classId) },
+        include: {
+          assignedTo: {
+            where: { userId: Number(userId) },
+          },
+          file: true,
+          submissions: {
+            where: { userId: Number(userId) },
+          },
+        },
+      });
+
+      res.status(200).json(assignments);
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  }
+);
+
+router.post(
+  "/:assignmentId/submit",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    const { assignmentId } = req.params;
+    const { userId } = req.body;
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Save file details to the database
+      const submission = await prisma.submission.create({
+        data: {
+          assignmentId: Number(assignmentId),
+          userId: Number(userId),
+          fileName: file.originalname,
+          filePath: file.path, // File path where the file is stored
+        },
+      });
+
+      res.status(201).json({
+        message: "Assignment submitted successfully",
+        submission,
+      });
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      res.status(500).json({ error: "Failed to submit assignment" });
+    }
+  }
+);
+
+router.get(
+  "/:assignmentId/submissions",
+  async (req: Request, res: Response) => {
+    const { assignmentId } = req.params;
+
+    try {
+      const submissions = await prisma.submission.findMany({
+        where: { assignmentId: Number(assignmentId) },
+        include: {
+          user: true,
+        },
+      });
+
+      res.status(200).json(submissions);
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+      res.status(500).json({ error: "Failed to fetch submissions" });
+    }
+  }
+);
+
+
 export default router;
