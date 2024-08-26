@@ -920,4 +920,94 @@ router.get(
 );
 
 
+router.get("/:classId/assignments", async (req, res) => {
+  const { classId } = req.params;
+  try {
+    const assignments = await prisma.assignment.findMany({
+      where: { classId: parseInt(classId) },
+    });
+    res.json(assignments);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ error: "Failed to fetch assignments" });
+  }
+});
+
+router.get("/:classId/users/:userId", async (req, res) => {
+  const { classId, userId } = req.params;
+
+  try {
+    const classIdInt = parseInt(classId);
+    const userIdInt = parseInt(userId);
+
+    const users = await prisma.user.findMany({
+      where: {
+        classes: {
+          some: {
+            classId: classIdInt,
+          },
+        },
+        id: {
+          not: userIdInt,
+        },
+      },
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+router.get("/:assignmentId/users/:userId/submission", async (req, res) => {
+  const { assignmentId, userId } = req.params;
+  try {
+    const submission = await prisma.submission.findFirst({
+      where: {
+        assignmentId: parseInt(assignmentId),
+        userId: parseInt(userId),
+      },
+    });
+    res.json(submission);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ error: "Failed to fetch submission" });
+  }
+});
+
+router.post("/:assignmentId/users/:userId/grade", async (req, res) => {
+  const { assignmentId, userId } = req.params;
+  const { grade } = req.body;
+  console.log(assignmentId, userId, grade);
+
+  if (!grade || isNaN(grade)) {
+    return res.status(400).json({ error: "Invalid grade input" });
+  }
+
+  try {
+    const submission = await prisma.submission.updateMany({
+      where: {
+        assignmentId: parseInt(assignmentId),
+        userId: parseInt(userId),
+      },
+      data: {
+        grade: parseInt(grade),
+      },
+    });
+
+    if (submission.count === 0) {
+      return res.status(404).json({ error: "Submission not found" });
+    }
+
+    res.json({ message: "Grade updated successfully" });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({ error: "Failed to update grade" });
+  }
+});
+
 export default router;

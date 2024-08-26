@@ -30,6 +30,7 @@ model Submission {
   createdAt     DateTime   @default(now())
   assignment    Assignment @relation(fields: [assignmentId], references: [id])
   user          User       @relation(fields: [userId], references: [id])
+  grade       Int          @default(0)
 }
 
 model AssignmentAssignmentTo {
