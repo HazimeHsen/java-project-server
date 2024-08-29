@@ -7,7 +7,7 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
-
+//hehe
 model Assignment {
   id          Int       @id @default(autoincrement())
   title       String
